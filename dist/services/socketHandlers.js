@@ -7,28 +7,32 @@ exports.getGoalLocation = exports.setGoalLocation = exports.handleConnection = v
 const loggerService_1 = __importDefault(require("./loggerService"));
 const goalService_1 = require("../services/goalService"); // Import the GoalService
 const locationService_1 = require("./locationService");
+const errorHandler_1 = require("../utils/errorHandler");
 let goalLocation = null;
 const handleConnection = (socket) => {
-    console.log('New client connected');
+    loggerService_1.default.info('New client connected');
     socket.on('updateLocation', (locationData) => {
-        console.log('updateLocation');
-        if (typeof locationData.lat !== 'number' || typeof locationData.lng !== 'number') {
-            console.error('Invalid location data:', locationData);
-            return;
+        try {
+            if (typeof locationData.lat !== 'number' || typeof locationData.lng !== 'number') {
+                throw new errorHandler_1.CustomError('Invalid location data', 400);
+            }
+            // Emit the updated location to all clients
+            socket.emit('locationChanged', locationData);
+            // Calculate the distance to the goal
+            const distance = goalService_1.GoalService.calculateDistance(locationData);
+            // If the ball is within a 10-meter radius of the goal, emit a goal event
+            if (distance <= 100) {
+                loggerService_1.default.info('goalEvent');
+                socket.emit('goalEvent'); // Notify the specific client that reached the goal
+            }
         }
-        // Emit the updated location to all clients
-        socket.emit('locationChanged', locationData);
-        // Calculate the distance to the goal
-        const distance = goalService_1.GoalService.calculateDistance(locationData);
-        // If the ball is within a 10-meter radius of the goal, emit a goal event
-        if (distance <= 100) {
-            console.log('goalEvent');
-            socket.emit('goalEvent'); // Notify the specific client that reached the goal
+        catch (error) {
+            loggerService_1.default.error('Error updating location:', error);
         }
     });
     socket.on('requestGoalLocation', (userLocation) => {
         try {
-            console.log('Raw location data received:', userLocation);
+            loggerService_1.default.info('Raw location data received:', userLocation);
             // Generate a new goal location
             const generatedGoalLocation = (0, locationService_1.generateGoalLocation)(userLocation);
             goalService_1.GoalService.setGoalLocation(generatedGoalLocation);
@@ -40,7 +44,7 @@ const handleConnection = (socket) => {
         }
     });
     socket.on('disconnect', () => {
-        console.log('Client disconnected');
+        loggerService_1.default.info('Client disconnected');
     });
 };
 exports.handleConnection = handleConnection;

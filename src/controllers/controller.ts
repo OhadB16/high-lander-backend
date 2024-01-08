@@ -1,17 +1,22 @@
 import { Request, Response } from 'express';
 import { GoalLocationData } from '../models/GoalLocationData';
 import { setGoalLocation } from '../services/socketHandlers';
+import { generateGoalLocation } from '../services/locationService';
+import { CustomError, handleError } from '../utils/errorHandler';
 import logger from '../services/loggerService';
 
 export class GoalController {
   static generateGoal(req: Request, res: Response) {
-    const generatedLocation: GoalLocationData = {
-      lat: Math.random() * 0.018 + (-0.009), // Random latitude within ~1km range
-      lng: Math.random() * 0.018 + (-0.009) // Random longitude within ~1km range
-    };
+    try {
+      const userLocation: GoalLocationData = req.body; // Assuming the user's location is sent in the request body
+      const generatedLocation = generateGoalLocation(userLocation);
 
-    setGoalLocation(generatedLocation);
-    logger.info('Generated new goal location', generatedLocation);
-    res.json({ goalLocation: generatedLocation });
+      setGoalLocation(generatedLocation);
+      logger.info('Generated new goal location', generatedLocation);
+      res.json({ goalLocation: generatedLocation });
+    } catch (error) {
+      logger.error('Error generating goal location:', error);
+      handleError(new CustomError('Error generating goal location', 500), res);
+    }
   }
 }

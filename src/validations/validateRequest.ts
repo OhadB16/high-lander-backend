@@ -2,9 +2,8 @@ import { query, validationResult } from 'express-validator';
 import { Request, Response, NextFunction } from 'express';
 
 export const validateRequest = [
-    // query('').optional().isString().withMessage('Search must be a string.'),
-    // query('').optional().isInt({ min: 1 }).withMessage('Page must be an integer greater than 0.'),
-    // query('').optional().isInt({ min: 1 }).withMessage('Per_page must be an integer greater than 0.'),
+    query('lat').isFloat({ min: -90, max: 90 }).withMessage('Latitude must be a float between -90 and 90.'),
+    query('lng').isFloat({ min: -180, max: 180 }).withMessage('Longitude must be a float between -180 and 180.'),
     (req: Request, res: Response, next: NextFunction) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
